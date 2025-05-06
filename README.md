@@ -48,19 +48,19 @@ Modular Racecar/Roadcar dashboard for the Vauxhall VX220 Turbo.
 
 ### Main Application
 
-The main application is built with imgui and Rust, and runs on the Raspberry Pi 4. The UI is running on the main thread, while the telemetry is running on a separate thread. 
+The main application is built with femtovg and Rust, and runs on the Raspberry Pi 4. The UI is running on the main thread, while the telemetry is running on a separate thread. 
 
 The raspberry pi is sending video signal to two HDMI monitors. One behind the steering wheel and one in the center console. The center console monitor will primarily display the rear view camera feed in race mode, and a custom UI in road mode.
 
 #### UI
 
-The UI is built with imgui-wgpu, and is located under the ui/ folder. It will make use of custom widgets defined in the src/ui/widgets/ folder. Graphical assets are located under the assets/ folder.
+The UI is built with femtovg, and is located under the ui/ folder. It will make use of custom widgets defined in the src/ui/widgets/ folder. Graphical assets are located under the assets/ folder.
 
-__Why imgui-wgpu?__
-- imgui is a mature and well-documented UI library that generates high-performance native UI.
-- its Rust bindings are actively maintained and up to date.
-- wgpu is a modern, fast, and easy to use GPU library for Rust, relying on the WebGPU API.
-- imgui-wgpu looks active and maintained
+__Why femtovg?__
+- femtovg is a lightweight, high-performance 2D vector graphics library
+- It provides modern OpenGL-based rendering
+- It has good Rust bindings and is actively maintained
+- It's well-suited for real-time dashboard applications
 
 #### Connection to Racebox Micro
 
@@ -112,3 +112,43 @@ The Video feed is captured by a PAL/SECAM FPV camera (Toothless), connected to a
 
 - [ ] OpenStreetMap integration for navigation
 - [ ] Tracks database for lap times and other track information
+
+## Features
+
+- Real-time telemetry display
+- RaceBox data integration (speed)
+- ESP32 data integration (RPM, boost pressure)
+- Modern UI with femtovg rendering
+- Cross-platform support
+
+## Requirements
+
+- Rust (latest stable)
+- OpenGL 3.3+ compatible graphics card
+- RaceBox device (optional)
+- ESP32 device (optional)
+
+## Building
+
+```bash
+cargo build --release
+```
+
+## Running
+
+```bash
+cargo run --release
+```
+
+## Project Structure
+
+- `src/`
+  - `main.rs` - Application entry point
+  - `telemetry/` - Telemetry data handling
+  - `ui/` - User interface components
+    - `render.rs` - UI rendering with femtovg
+    - `window.rs` - Window management
+  - `logging.rs` - Logging configuration
+
+## License
+

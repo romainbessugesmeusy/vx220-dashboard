@@ -110,4 +110,17 @@ impl TelemetryState {
     }
 }
 
-pub type SharedTelemetryState = Arc<Mutex<TelemetryState>>; 
+pub type SharedTelemetryState = Arc<Mutex<TelemetryState>>;
+
+#[cfg(feature = "mock_telemetry")]
+pub mod mock;
+
+#[cfg(feature = "mock_telemetry")]
+pub async fn maybe_start_mock_telemetry(telemetry_state: SharedTelemetryState) {
+    mock::start_mock_telemetry(telemetry_state).await;
+}
+
+#[cfg(not(feature = "mock_telemetry"))]
+pub async fn maybe_start_mock_telemetry(_telemetry_state: SharedTelemetryState) {
+    // No-op in real mode
+} 

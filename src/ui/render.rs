@@ -4,6 +4,9 @@ use femtovg::{Canvas, renderer::Renderer, Color, Paint, Path};
 use crate::telemetry::SharedTelemetryState;
 use crate::logging::UI_NAMESPACE;
 use log::debug;
+use crate::ui::widgets::{Widget, WidgetGeometry};
+use crate::ui::widgets::g_force_meter::GForceMeter;
+use crate::ui::widgets::theme::Theme;
 
 pub fn render_ui<R: Renderer>(canvas: &mut Canvas<R>, telemetry_state: &SharedTelemetryState) {
     //debug!(target: UI_NAMESPACE, "Rendering UI {}x{}", canvas.width(), canvas.height());
@@ -11,35 +14,35 @@ pub fn render_ui<R: Renderer>(canvas: &mut Canvas<R>, telemetry_state: &SharedTe
     // Clear the canvas with a solid color
     canvas.clear_rect(0, 0, canvas.width() as u32, canvas.height() as u32, Color::rgb(40, 40, 80));
 
-    // Draw a filled red rectangle
-    let mut path = Path::new();
-    path.rect(50.0, 50.0, 100.0, 100.0);
-    let paint = Paint::color(Color::rgb(255, 0, 0));
-    canvas.fill_path(&path, &paint);
+    // Create a Theme instance
+    let theme = Theme::default();
 
-    // Draw a filled green rectangle
-    let mut path = Path::new();
-    path.rect(200.0, 50.0, 100.0, 100.0);
-    let paint = Paint::color(Color::rgb(0, 255, 0));
-    canvas.fill_path(&path, &paint);
-
-    // Draw a filled blue circle
-    let mut path = Path::new();
-    path.circle(400.0, 100.0, 50.0);
-    let paint = Paint::color(Color::rgb(0, 0, 255));
-    canvas.fill_path(&path, &paint);
+    // Create a GForceMeter widget
+    let g_force_meter = GForceMeter::new(
+        WidgetGeometry::new(
+            canvas.width() * 0.6, // X position - right side of screen
+            canvas.height() * 0.3, // Y position - upper portion of screen
+            canvas.width() * 0.3, // Width - 30% of screen width
+            canvas.width() * 0.3, // Height - make it square with same size as width
+        ),
+        theme,
+        2.0, // max_g_force_displayed
+    );
+    
+    // Render the GForceMeter
+    g_force_meter.render(canvas, telemetry_state);
 
     // Draw some text
     let mut text_paint = Paint::color(Color::rgb(255, 255, 255));
     text_paint.set_font_size(48.0);
-    let _ = canvas.fill_text(50.0, 200.0, "VX220 Dashboard", &text_paint);
+    let _ = canvas.fill_text(50.0, 100.0, "VX220 Dashboard", &text_paint);
 
     // Draw debug info
     let mut debug_paint = Paint::color(Color::rgb(255, 255, 255));
     debug_paint.set_font_size(24.0);
     let _ = canvas.fill_text(
         50.0,
-        250.0,
+        150.0,
         &format!("Canvas size: {}x{}", canvas.width(), canvas.height()),
         &debug_paint,
     );
@@ -52,7 +55,7 @@ pub fn render_ui<R: Renderer>(canvas: &mut Canvas<R>, telemetry_state: &SharedTe
             return;
         }
     };
-    let mut y_position = 300.0;
+    let mut y_position = 200.0;
     let x_position = 50.0;
     let y_spacing = 40.0;
 

@@ -3,6 +3,9 @@ name = "vx220-dashboard"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+mock_telemetry = []
+
 [dependencies]
 btleplug = "0.11.8"
 env_logger = "0.11.8"
@@ -19,3 +22,4 @@ glutin-winit = "0.3.0"
 raw-window-handle = "0.5"
 gl = "0.14.0"
 log = "0.4.27"
+rand = { version = "0.8", features = ["small_rng"] }

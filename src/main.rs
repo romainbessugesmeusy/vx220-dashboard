@@ -17,6 +17,9 @@ async fn main() {
     // Create shared telemetry state
     let telemetry_state = Arc::new(Mutex::new(telemetry::TelemetryState::new()));
 
+    // Start mock telemetry if enabled
+    telemetry::maybe_start_mock_telemetry(telemetry_state.clone()).await;
+
     // Start BLE listener for RaceBox Micro
     let telemetry_state_ble = telemetry_state.clone();
     tokio::spawn(async move {
