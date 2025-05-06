@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "vx220-dashboard",
+        "type": "lldb",
+        "request": "launch",
+        "program": "${workspaceFolder}/target/debug/vx220-dashboard.exe",
+        "args": [],
+        "cwd": "${workspaceFolder}",
+        "stopOnEntry": false,
+        "sourceLanguages": ["rust"]
+      }
+    ]
+  }
+  
