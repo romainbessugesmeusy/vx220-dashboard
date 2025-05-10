@@ -64,13 +64,21 @@ pub fn parse_packet(data: &[u8]) -> Option<RaceBoxData> {
     let speed_acc = u32::from_le_bytes([data[56], data[57], data[58], data[59]]) as f32 / 1000.0;
     let heading_acc = u32::from_le_bytes([data[60], data[61], data[62], data[63]]) as f32 / 100000.0;
 
+    // Standard Deviation of Position in meters
+    // It's a GNSS quality metric and helps to understand how precise the position is
     let pdop_raw = u16::from_le_bytes([data[64], data[65]]);
     let pdop = pdop_raw as f32 / 100.0;
 
-    let g_force_x = i16::from_le_bytes([data[68], data[69]]) as f32 / 1000.0;
-    let g_force_y = i16::from_le_bytes([data[70], data[71]]) as f32 / 1000.0;
-    let g_force_z = i16::from_le_bytes([data[72], data[73]]) as f32 / 1000.0;
+    // G-Forces in milli-g's
+    let g_force_x_raw = [data[68], data[69]];
+    let g_force_y_raw = [data[70], data[71]];
+    let g_force_z_raw = [data[72], data[73]];
+    let g_force_x = i16::from_le_bytes(g_force_x_raw) as f32 / 1000.0;
+    let g_force_y = i16::from_le_bytes(g_force_y_raw) as f32 / 1000.0;
+    let g_force_z = i16::from_le_bytes(g_force_z_raw) as f32 / 1000.0;
+    crate::racebox_log!(log::Level::Debug, "g_force_x_raw: {:?}, g_force_y_raw: {:?}, g_force_z_raw: {:?} | g_force_x: {}, g_force_y: {}, g_force_z: {}", g_force_x_raw, g_force_y_raw, g_force_z_raw, g_force_x, g_force_y, g_force_z);
 
+    // Rotation Rates in centi-degrees per second
     let rot_rate_x = i16::from_le_bytes([data[74], data[75]]) as f32 / 100.0;
     let rot_rate_y = i16::from_le_bytes([data[76], data[77]]) as f32 / 100.0;
     let rot_rate_z = i16::from_le_bytes([data[78], data[79]]) as f32 / 100.0;

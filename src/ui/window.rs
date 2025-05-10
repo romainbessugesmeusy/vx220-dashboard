@@ -71,8 +71,7 @@ pub fn create_femtovg_context(app_window: &AppWindow) -> FemtovgContext {
     let raw_window_handle = app_window.window.raw_window_handle();
 
     let context_attributes = ContextAttributesBuilder::new()
-        .with_profile(glutin::context::GlProfile::Core)
-        .with_context_api(glutin::context::ContextApi::OpenGl(Some(glutin::context::Version::new(3, 3))))
+        .with_context_api(glutin::context::ContextApi::Gles(Some(glutin::context::Version::new(3, 1))))
         .with_debug(true)
         .build(Some(raw_window_handle));
 
@@ -129,12 +128,9 @@ pub fn create_femtovg_context(app_window: &AppWindow) -> FemtovgContext {
     let mut canvas = Canvas::new(renderer).expect("Cannot create canvas");
     canvas.set_size(size.width, size.height, app_window.window.scale_factor() as f32);
 
-    // Try to load system fonts
+    // Try to load bundled font
     let font_paths = [
-        "C:\\Windows\\Fonts\\segoe.ttf",
-        "C:\\Windows\\Fonts\\arial.ttf",
-        "C:\\Windows\\Fonts\\tahoma.ttf",
-        "C:\\Windows\\Fonts\\verdana.ttf",
+        "assets/fonts/FiraSans-Regular.ttf",
     ];
 
     let mut font_loaded = false;
@@ -149,7 +145,7 @@ pub fn create_femtovg_context(app_window: &AppWindow) -> FemtovgContext {
     }
 
     if !font_loaded {
-        warn!(target: UI_NAMESPACE, "No system fonts could be loaded. Text rendering may not work correctly.");
+        warn!(target: UI_NAMESPACE, "No bundled fonts could be loaded. Text rendering may not work correctly.");
     }
 
     info!(target: UI_NAMESPACE, "Femtovg context created successfully!");

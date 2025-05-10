@@ -1,0 +1,48 @@
+Troubleshooting OpenGL Context Creation Error on Raspberry Pi
+=============================================================
+
+If you see an error like:
+  Failed to create GL context: Error { raw_code: Some(12297), raw_os_message: None, kind: BadMatch }
+
+Follow these steps:
+
+1. Check and Set the Correct GL Driver
+--------------------------------------
+- Open a terminal and run:
+    sudo raspi-config
+- Go to Advanced Options → GL Driver (or Performance Options → GL Driver).
+- Try setting to 'GL (Fake KMS)' or 'GL (Full KMS)'.
+- Reboot the Raspberry Pi after changing the driver.
+
+2. Verify OpenGL Support
+------------------------
+- Install mesa-utils if not already installed:
+    sudo apt-get install mesa-utils
+- Run:
+    glxinfo | grep OpenGL
+- You should see lines like:
+    OpenGL vendor string: ...
+    OpenGL renderer string: ...
+    OpenGL version string: ...
+- If you see 'llvmpipe' or 'software rasterizer', hardware acceleration is not working.
+
+3. Test with a Simple OpenGL App
+--------------------------------
+- Run:
+    glxgears
+- If it runs and shows spinning gears, OpenGL is working.
+
+4. Lower OpenGL Version/Profile in Your App (if possible)
+---------------------------------------------------------
+- If your app requests a high OpenGL version or core profile, try lowering it to OpenGL ES 2.0/3.0 or legacy OpenGL.
+- Check your code or dependencies (like winit/glutin) for context creation settings.
+
+5. Update System and Firmware
+-----------------------------
+- Make sure your system is up to date:
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo rpi-update
+- Reboot after updating.
+
+If you still have issues, provide the output of 'glxinfo | grep OpenGL' and your Raspberry Pi model and OS version for further help. 

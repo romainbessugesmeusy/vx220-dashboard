@@ -51,28 +51,55 @@ where
 {
     task::spawn(async move {
         let manager = match Manager::new().await {
-            Ok(m) => m,
+            Ok(m) => {
+                crate::racebox_log!(log::Level::Info, "BLE manager created successfully");
+                m
+            },
             Err(e) => {
+                crate::racebox_log!(log::Level::Error, "Failed to create BLE manager: {e}");
                 on_error(BleError::ManagerCreation(e));
                 return;
             }
         };
         
         let adapters = match manager.adapters().await {
-            Ok(a) => a,
+            Ok(a) => {
+                crate::racebox_log!(log::Level::Info, "BLE adapters found: {}", a.len());
+                a
+            },
             Err(e) => {
+                crate::racebox_log!(log::Level::Error, "Failed to get BLE adapters: {e}");
                 on_error(BleError::ManagerCreation(e));
                 return;
             }
         };
         
         let central = match adapters.into_iter().next() {
-            Some(c) => c,
+            Some(c) => {
+                crate::racebox_log!(log::Level::Info, "Using BLE adapter");
+                c
+            },
             None => {
+                crate::racebox_log!(log::Level::Error, "No BLE adapter found");
                 on_error(BleError::NoAdapter);
                 return;
             }
         };
+
+        let scan_result = central.start_scan(Default::default()).await;
+        if let Err(e) = scan_result {
+            let err_str = format!("{e}");
+            if err_str.contains("org.bluez.Error.InProgress") || err_str.contains("Operation already in progress") {
+                crate::racebox_log!(log::Level::Warn, "Scan already in progress, continuing");
+                // Ignore and continue
+            } else {
+                crate::racebox_log!(log::Level::Error, "Failed to start BLE scan: {e}");
+                on_error(BleError::ScanStart(e));
+                return;
+            }
+        } else {
+            crate::racebox_log!(log::Level::Info, "BLE scan started");
+        }
 
         // Scanning strategy:
         // 1. Every 1 second for first 10 seconds
@@ -82,11 +109,6 @@ where
         let mut connected = false;
 
         while !connected {
-            if let Err(e) = central.start_scan(Default::default()).await {
-                on_error(BleError::ScanStart(e));
-                return;
-            }
-
             // Determine sleep duration based on scan count
             let sleep_duration = if scan_count < 10 {
                 Duration::from_secs(1)
@@ -100,8 +122,12 @@ where
             scan_count += 1;
 
             let peripherals = match central.peripherals().await {
-                Ok(p) => p,
+                Ok(p) => {
+                    crate::racebox_log!(log::Level::Debug, "Found {} peripherals", p.len());
+                    p
+                },
                 Err(e) => {
+                    crate::racebox_log!(log::Level::Error, "Failed to get peripherals: {e}");
                     on_error(BleError::PeripheralDiscovery(e));
                     continue;
                 }
@@ -110,44 +136,81 @@ where
             for p in peripherals {
                 if let Ok(Some(props)) = p.properties().await {
                     if let Some(local_name) = props.local_name {
+                        crate::racebox_log!(log::Level::Debug, "Peripheral found: {local_name}");
                         if local_name.starts_with("RaceBox Micro") {
+                            crate::racebox_log!(log::Level::Info, "RaceBox Micro device found: {local_name}");
                             if let Err(e) = p.connect().await {
+                                crate::racebox_log!(log::Level::Error, "Failed to connect to device: {e}");
                                 on_error(BleError::Connection(e));
                                 continue;
                             }
 
+                            crate::racebox_log!(log::Level::Info, "Connected to device: {local_name}");
+
                             if let Err(e) = p.discover_services().await {
+                                crate::racebox_log!(log::Level::Error, "Failed to discover services: {e}");
                                 on_error(BleError::ServiceDiscovery(e));
                                 continue;
                             }
 
-                            let chars = p.characteristics();
-                            let tx = match chars.iter().find(|c| c.uuid.to_string() == TX_CHAR_UUID) {
-                                Some(c) => c,
-                                None => {
-                                    on_error(BleError::CharacteristicNotFound);
+                            crate::racebox_log!(log::Level::Debug, "Services discovered");
+
+                            // Log all available services
+                            let services = p.services();
+                            crate::racebox_log!(log::Level::Debug, "Available services: {:?}", services.iter().map(|s| s.uuid.to_string()).collect::<Vec<_>>());
+
+                            // Find the UART service
+                            let uart_service = services.iter().find(|s| s.uuid.to_string().to_uppercase() == UART_SERVICE_UUID.to_uppercase());
+                            if let Some(service) = uart_service {
+                                crate::racebox_log!(log::Level::Info, "UART service found: {}", service.uuid);
+                                // Log all characteristics in the UART service
+                                crate::racebox_log!(log::Level::Debug, "UART service characteristics: {:?}", service.characteristics.iter().map(|c| c.uuid.to_string()).collect::<Vec<_>>());
+                                // Find the TX characteristic within the UART service
+                                let tx = service.characteristics.iter().find(|c| c.uuid.to_string().to_uppercase() == TX_CHAR_UUID.to_uppercase());
+                                let tx = match tx {
+                                    Some(c) => {
+                                        crate::racebox_log!(log::Level::Debug, "TX characteristic found in UART service");
+                                        c
+                                    },
+                                    None => {
+                                        crate::racebox_log!(log::Level::Error, "TX characteristic not found in UART service");
+                                        on_error(BleError::CharacteristicNotFound);
+                                        continue;
+                                    }
+                                };
+
+                                if let Err(e) = p.subscribe(tx).await {
+                                    crate::racebox_log!(log::Level::Error, "Failed to subscribe to notifications: {e}");
+                                    on_error(BleError::Subscription(e));
                                     continue;
                                 }
-                            };
 
-                            if let Err(e) = p.subscribe(tx).await {
-                                on_error(BleError::Subscription(e));
+                                crate::racebox_log!(log::Level::Info, "Subscribed to notifications");
+
+                                let mut notifications = match p.notifications().await {
+                                    Ok(n) => n,
+                                    Err(e) => {
+                                        crate::racebox_log!(log::Level::Error, "Failed to get notifications: {e}");
+                                        on_error(BleError::NotificationSetup(e));
+                                        continue;
+                                    }
+                                };
+
+                                connected = true;
+                                crate::racebox_log!(log::Level::Info, "Listening for notifications");
+                                while let Some(data) = notifications.next().await {
+                                    //crate::racebox_log!(log::Level::Trace, "Notification received: {:x?}", data.value);
+                                    if let Some(parsed) = parse_packet(&data.value) {
+                                        //crate::racebox_log!(log::Level::Debug, "Parsed RaceBox data: {:?}", parsed);
+                                        on_data(parsed);
+                                    } else {
+                                        crate::racebox_log!(log::Level::Warn, "Failed to parse RaceBox packet");
+                                    }
+                                }
+                            } else {
+                                crate::racebox_log!(log::Level::Error, "UART service not found");
+                                on_error(BleError::CharacteristicNotFound);
                                 continue;
-                            }
-
-                            let mut notifications = match p.notifications().await {
-                                Ok(n) => n,
-                                Err(e) => {
-                                    on_error(BleError::NotificationSetup(e));
-                                    continue;
-                                }
-                            };
-
-                            connected = true;
-                            while let Some(data) = notifications.next().await {
-                                if let Some(parsed) = parse_packet(&data.value) {
-                                    on_data(parsed);
-                                }
                             }
                         }
                     }
