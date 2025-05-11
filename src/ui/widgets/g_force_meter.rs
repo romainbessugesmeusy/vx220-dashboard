@@ -1,7 +1,7 @@
 use femtovg::{Canvas, renderer::Renderer, Paint, Path};
 use crate::telemetry::SharedTelemetryState;
 use super::{Widget, WidgetGeometry};
-use super::theme::Theme;
+use crate::ui::theme::Theme;
 use std::f32::consts::PI;
 
 const DIRECTION_LABELS: [&str; 4] = ["FRONT", "RIGHT", "REAR", "LEFT"];
@@ -57,7 +57,7 @@ impl Widget for GForceMeter {
         // Draw background
         let mut path = Path::new();
         path.rect(geometry.x, geometry.y, geometry.width, geometry.height);
-        let paint = Paint::color(self.theme.background_color);
+        let paint = Paint::color(Theme::color4(self.theme.background_color));
         canvas.fill_path(&path, &paint);
         
         // Draw concentric circles
@@ -67,7 +67,7 @@ impl Widget for GForceMeter {
             let mut path = Path::new();
             path.circle(center_x, center_y, circle_radius);
             
-            let mut paint = Paint::color(*color);
+            let mut paint = Paint::color(Theme::color4(*color));
             paint.set_line_width(self.theme.line_width);
             paint.set_line_join(femtovg::LineJoin::Round);
             canvas.stroke_path(&path, &paint);
@@ -83,7 +83,7 @@ impl Widget for GForceMeter {
         path.move_to(center_x, center_y - cross_size);
         path.line_to(center_x, center_y + cross_size);
         
-        let mut paint = Paint::color(self.theme.foreground_color);
+        let mut paint = Paint::color(Theme::color3(self.theme.foreground_color));
         paint.set_line_width(self.theme.line_width * 0.5);
         canvas.stroke_path(&path, &paint);
         
@@ -105,18 +105,18 @@ impl Widget for GForceMeter {
         // Draw the g-force indicator dot
         let mut path = Path::new();
         path.circle(dot_x, dot_y, dot_size);
-        let paint = Paint::color(self.theme.dot_color);
+        let paint = Paint::color(Theme::color3(self.theme.dot_color));
         canvas.fill_path(&path, &paint);
         
         // Draw the dot border
         let mut path = Path::new();
         path.circle(dot_x, dot_y, dot_size);
-        let mut paint = Paint::color(self.theme.dot_border_color);
+        let mut paint = Paint::color(Theme::color3(self.theme.dot_border_color));
         paint.set_line_width(self.theme.line_width * 0.5);
         canvas.stroke_path(&path, &paint);
         
         // Draw direction labels and g-force values
-        let mut text_paint = Paint::color(self.theme.text_color);
+        let mut text_paint = Paint::color(Theme::color3(self.theme.text_color));
         text_paint.set_font_size(self.theme.font_size);
         text_paint.set_text_align(femtovg::Align::Center);
         text_paint.set_text_baseline(femtovg::Baseline::Middle);

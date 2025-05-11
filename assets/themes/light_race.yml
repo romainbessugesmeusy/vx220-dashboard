@@ -1,0 +1,12 @@
+background_color: [255, 255, 255, 230]
+foreground_color: [30, 30, 30]
+accent_color: [220, 20, 60]
+text_color: [30, 30, 30]
+font_size: 16.0
+line_width: 3.0
+circle_colors:
+  - [220, 20, 60, 40]
+  - [220, 20, 60, 20]
+  - [220, 20, 60, 10]
+dot_color: [220, 20, 60]
+dot_border_color: [30, 30, 30] 

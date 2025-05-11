@@ -76,11 +76,26 @@ pub enum TelemetryError {
     ESP32(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DriveMode {
+    Road,
+    Track,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorScheme {
+    Light,
+    Dark,
+    // HighContrast, // for future use
+}
+
 pub struct TelemetryState {
     pub latest_racebox_data: Option<RaceBoxData>,
     pub latest_esp32_data: ESP32Data,
     pub racebox_error: Option<(TelemetryError, Instant)>,
     pub esp32_error: Option<(TelemetryError, Instant)>,
+    pub drive_mode: DriveMode,
+    pub color_scheme: ColorScheme,
 }
 
 impl TelemetryState {
@@ -90,6 +105,8 @@ impl TelemetryState {
             latest_esp32_data: ESP32Data::default(),
             racebox_error: None,
             esp32_error: None,
+            drive_mode: DriveMode::Road,
+            color_scheme: ColorScheme::Light,
         }
     }
 
@@ -107,6 +124,22 @@ impl TelemetryState {
 
     pub fn clear_esp32_error(&mut self) {
         self.esp32_error = None;
+    }
+
+    pub fn set_drive_mode(&mut self, mode: DriveMode) {
+        self.drive_mode = mode;
+    }
+
+    pub fn get_drive_mode(&self) -> DriveMode {
+        self.drive_mode
+    }
+
+    pub fn set_color_scheme(&mut self, scheme: ColorScheme) {
+        self.color_scheme = scheme;
+    }
+
+    pub fn get_color_scheme(&self) -> ColorScheme {
+        self.color_scheme
     }
 }
 

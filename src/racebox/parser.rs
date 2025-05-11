@@ -76,8 +76,7 @@ pub fn parse_packet(data: &[u8]) -> Option<RaceBoxData> {
     let g_force_x = i16::from_le_bytes(g_force_x_raw) as f32 / 1000.0;
     let g_force_y = i16::from_le_bytes(g_force_y_raw) as f32 / 1000.0;
     let g_force_z = i16::from_le_bytes(g_force_z_raw) as f32 / 1000.0;
-    crate::racebox_log!(log::Level::Debug, "g_force_x_raw: {:?}, g_force_y_raw: {:?}, g_force_z_raw: {:?} | g_force_x: {}, g_force_y: {}, g_force_z: {}", g_force_x_raw, g_force_y_raw, g_force_z_raw, g_force_x, g_force_y, g_force_z);
-
+    
     // Rotation Rates in centi-degrees per second
     let rot_rate_x = i16::from_le_bytes([data[74], data[75]]) as f32 / 100.0;
     let rot_rate_y = i16::from_le_bytes([data[76], data[77]]) as f32 / 100.0;

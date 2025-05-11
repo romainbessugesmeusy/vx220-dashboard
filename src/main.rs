@@ -8,6 +8,10 @@ use winit::event_loop::EventLoop;
 use tokio::sync::Mutex;
 use std::sync::Arc;
 use log::Level::Error;
+use std::thread;
+use std::net::{TcpListener, TcpStream};
+use std::io::{BufRead, BufReader, Write};
+use crate::telemetry::{DriveMode, ColorScheme};
 
 #[tokio::main]
 async fn main() {
@@ -64,9 +68,51 @@ async fn main() {
         }
     });
 
+    // Start the command listener (in a background thread)
+    start_command_listener(telemetry_state.clone());
+
     // Create event loop
     let event_loop = EventLoop::new();
 
     // Run UI
     ui::run_ui(event_loop, telemetry_state);
+}
+
+fn start_command_listener(telemetry_state: Arc<Mutex<telemetry::TelemetryState>>) {
+    thread::spawn(move || {
+        let listener = TcpListener::bind("127.0.0.1:7878").expect("Failed to bind TCP listener");
+        for stream in listener.incoming() {
+            if let Ok(stream) = stream {
+                handle_command(stream, &telemetry_state);
+            }
+        }
+    });
+}
+
+fn handle_command(mut stream: TcpStream, telemetry_state: &Arc<Mutex<telemetry::TelemetryState>>) {
+    let mut reader = BufReader::new(stream.try_clone().unwrap());
+    for line in reader.lines() {
+        if let Ok(cmd) = line {
+            let mut state = telemetry_state.blocking_lock();
+            let tokens: Vec<_> = cmd.trim().split_whitespace().collect();
+            let mut response = "OK\n".to_string();
+            if tokens.len() == 2 && tokens[0] == "set_mode" {
+                match tokens[1] {
+                    "Road" => state.set_drive_mode(DriveMode::Road),
+                    "Track" => state.set_drive_mode(DriveMode::Track),
+                    _ => response = format!("ERR invalid mode: {}\n", tokens[1]),
+                }
+            } else if tokens.len() == 2 && tokens[0] == "set_scheme" {
+                match tokens[1] {
+                    "Light" => state.set_color_scheme(ColorScheme::Light),
+                    "Dark" => state.set_color_scheme(ColorScheme::Dark),
+                    _ => response = format!("ERR invalid scheme: {}\n", tokens[1]),
+                }
+            } else {
+                response = "ERR unknown command\n".to_string();
+            }
+            let _ = stream.write_all(response.as_bytes());
+            break;
+        }
+    }
 }

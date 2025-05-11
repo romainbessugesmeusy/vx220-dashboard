@@ -78,8 +78,7 @@ The RaceBoxData struct is defined in the racebox/parser.rs file. It is used by t
 
 The ESP32 WROOM is running a custom firmware that acts as a analog to digital converter for the sensors. It then sends the data to the Raspberry Pi 4 over UART. 
 
-```
-ESP32 GPIO17 (TX) ──────────────> Pi GPIO15 (RX) [Pin 10]
+```ESP32 GPIO17 (TX) ──────────────> Pi GPIO15 (RX) [Pin 10]
 ESP32 GPIO16 (RX) <───────────── Pi GPIO14 (TX) [Pin 8]
 ESP32 GND        ─────────────── Pi GND         [Pin 6]
 ``` 
@@ -150,5 +149,53 @@ cargo run --release
     - `window.rs` - Window management
   - `logging.rs` - Logging configuration
 
+## UI Themes
+
+UI themes are now loaded from YAML files in `assets/themes/`. The following files are required:
+
+- `dark_road.yml`
+- `dark_race.yml`
+- `light_road.yml`
+- `light_race.yml`
+
+Each file defines the color and style settings for a specific drive mode and color scheme combination. The expected YAML format is documented at the top of `src/ui/theme.rs`.
+
+If any of these files are missing, the app will panic at startup.
+
 ## License
+
+## Live UI State Control via TCP Command Interface
+
+The dashboard supports live UI state changes via a simple TCP command interface. This is useful for development, testing, and demo purposes.
+
+### How it works
+- The app listens on TCP port 7878 for commands.
+- You can send commands from another terminal or script to change the drive mode or color scheme in real time.
+- The UI will update and animate the transition accordingly.
+
+### Example Usage
+
+```
+# Set drive mode to Track
+ echo set_mode Track | nc 127.0.0.1 7878
+
+# Set drive mode to Road
+ echo set_mode Road | nc 127.0.0.1 7878
+
+# Set color scheme to Dark
+ echo set_scheme Dark | nc 127.0.0.1 7878
+
+# Set color scheme to Light
+ echo set_scheme Light | nc 127.0.0.1 7878
+```
+
+You can use `nc` (netcat), `telnet`, or any TCP client to send these commands while the app is running.
+
+### Supported Commands
+- `set_mode Road` — Switch to Road drive mode
+- `set_mode Track` — Switch to Track drive mode
+- `set_scheme Light` — Switch to Light color scheme
+- `set_scheme Dark` — Switch to Dark color scheme
+
+This system is extensible: you can add more commands for other mock/test features as needed by editing `src/main.rs`.
 

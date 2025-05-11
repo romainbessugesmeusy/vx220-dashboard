@@ -1,7 +1,6 @@
 use femtovg::{Canvas, renderer::Renderer};
 use crate::telemetry::SharedTelemetryState;
 
-pub mod theme;
 pub mod g_force_meter;
 
 /// Defines the position and size of a widget

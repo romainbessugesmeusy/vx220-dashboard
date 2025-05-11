@@ -1,6 +1,7 @@
 mod window;
 mod render;
 pub mod widgets;
+pub mod theme;
 
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
