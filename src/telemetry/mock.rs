@@ -54,7 +54,7 @@ pub async fn start_mock_telemetry(telemetry_state: SharedTelemetryState) {
             let esp32_data = ESP32Data {
                 fuel_level: Some(3000 + ((t * 0.1).sin() * 500.0) as u16),
                 oil_pressure: Some(2000 + ((t * 0.2).cos() * 200.0) as u16),
-                boost_pressure: Some(1500 + ((t * 0.3).sin() * 300.0) as u16),
+                boost_pressure: Some((500.0 + ((t * 0.3).sin() * 700.0)) as u16),
                 rpm: Some(2000 + ((t * 1.5).sin() * 1500.0) as u16),
                 speed: Some(speed_kph as u16),
                 status_flags: None,

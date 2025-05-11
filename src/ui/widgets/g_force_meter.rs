@@ -3,29 +3,36 @@ use crate::telemetry::SharedTelemetryState;
 use super::{Widget, WidgetGeometry};
 use crate::ui::theme::Theme;
 use std::f32::consts::PI;
+use crate::ui::widgets::{ThemeTransition, LayoutContext};
+use std::time::Duration;
 
 const DIRECTION_LABELS: [&str; 4] = ["FRONT", "RIGHT", "REAR", "LEFT"];
 
 /// A widget that displays G-Force as a moving dot in a circular display
 pub struct GForceMeter {
-    geometry: WidgetGeometry,
     theme: Theme,
     max_g_force_displayed: f32,
+    // For theme transition animation
+    theme_transition: Option<ThemeTransition>,
+    theme_anim_time: f32, // 0.0..=1.0
 }
 
 impl GForceMeter {
     /// Create a new GForceMeter widget
-    pub fn new(geometry: WidgetGeometry, theme: Theme, max_g_force_displayed: f32) -> Self {
+    pub fn new(theme: Theme, max_g_force_displayed: f32) -> Self {
         Self {
-            geometry,
             theme,
             max_g_force_displayed,
+            theme_transition: None,
+            theme_anim_time: 1.0,
         }
     }
     
     /// Set the theme for this GForceMeter
     pub fn set_theme(&mut self, theme: Theme) {
         self.theme = theme;
+        self.theme_transition = None;
+        self.theme_anim_time = 1.0;
     }
     /// Set the max G-Force displayed
     pub fn set_max_g_force_displayed(&mut self, max_g: f32) {
@@ -34,7 +41,7 @@ impl GForceMeter {
 }
 
 impl Widget for GForceMeter {
-    fn render<R: Renderer>(&self, canvas: &mut Canvas<R>, telemetry_state: &SharedTelemetryState) {
+    fn render<R: Renderer>(&self, canvas: &mut Canvas<R>, rect: WidgetGeometry, telemetry_state: &SharedTelemetryState) {
         let state = match telemetry_state.try_lock() {
             Ok(state) => state,
             Err(_) => return, // Skip rendering if we can't acquire the lock
@@ -48,7 +55,7 @@ impl Widget for GForceMeter {
         let (g_force_x, g_force_y, g_force_z) = g_force_data;
         
         // Prepare drawing constants
-        let geometry = self.geometry;
+        let geometry = rect;
         let center_x = geometry.center_x();
         let center_y = geometry.center_y();
         let min_dimension = geometry.width.min(geometry.height);
@@ -154,12 +161,26 @@ impl Widget for GForceMeter {
             );
         }
     }
-    
-    fn geometry(&self) -> WidgetGeometry {
-        self.geometry
+
+    fn on_theme_change(&mut self, new_theme: &Theme, transition: ThemeTransition) {
+        self.theme_transition = Some(transition);
+        self.theme_anim_time = 0.0;
     }
-    
-    fn set_geometry(&mut self, geometry: WidgetGeometry) {
-        self.geometry = geometry;
+
+    fn update(&mut self, dt: Duration) {
+        if let Some(ref mut transition) = self.theme_transition {
+            self.theme_anim_time += dt.as_secs_f32();
+            let t = self.theme_anim_time.min(1.0);
+            self.theme = Theme::interpolate(&transition.from, &transition.to, t);
+            if t >= 1.0 {
+                self.theme_transition = None;
+                self.theme_anim_time = 1.0;
+            }
+        }
+    }
+
+    fn preferred_size(&self, _ctx: &LayoutContext) -> WidgetGeometry {
+        // Default to a square 200x200, can be dynamic based on context
+        WidgetGeometry::new(0.0, 0.0, 200.0, 200.0)
     }
 } 

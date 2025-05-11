@@ -31,4 +31,11 @@ scp raspi_setup.sh "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}:${REMOTE_DIR}/"
 Write-Host "Running raspi_setup.sh on Raspberry Pi..." -ForegroundColor Green
 ssh "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}" "chmod +x ${REMOTE_DIR}/raspi_setup.sh && ${REMOTE_DIR}/raspi_setup.sh"
 
+# 4. Setup the Serial Connection to the ESP32
+# Add user to dialout group for serial port access
+Write-Host "Adding user to dialout group for serial port access..." -ForegroundColor Green
+ssh "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}" "sudo chgrp dialout /dev/ttyS0 && sudo chmod 660 /dev/ttyS0"
+ssh "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}" "sudo usermod -a -G dialout ${RASPBERRY_PI_USER}"
+
+
 Write-Host "Setup script executed on Raspberry Pi." -ForegroundColor Green 

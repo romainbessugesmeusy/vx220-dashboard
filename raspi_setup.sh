@@ -33,4 +33,12 @@ if ! grep -q 'cargo/env' ~/.bashrc; then
     echo 'source $HOME/.cargo/env' >> ~/.bashrc
 fi
 
+# Enable UART in config.txt
+echo "Configuring UART..."
+if ! grep -q "^enable_uart=1" /boot/firmware/config.txt; then
+    echo "Adding enable_uart=1 to /boot/firmware/config.txt"
+    sudo sh -c 'echo "enable_uart=1" >> /boot/firmware/config.txt'
+fi
+
+
 echo "Setup complete! You may need to restart your terminal or run 'source ~/.cargo/env' to use Rust." 

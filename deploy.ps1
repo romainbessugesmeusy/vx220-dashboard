@@ -19,6 +19,10 @@ scp -r "assets" "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}:${REMOTE_DIR}/"
 scp "Cargo.toml" "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}:${REMOTE_DIR}/"
 scp "Cargo.lock" "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}:${REMOTE_DIR}/"
 
+# Verify theme files exist and set permissions
+Write-Host "Verifying theme files..." -ForegroundColor Green
+ssh "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}" "cd ${REMOTE_DIR} && ls -la assets/themes/*.yml && chmod 644 assets/themes/*.yml"
+
 # Build on Raspberry Pi
 Write-Host "Building on Raspberry Pi..." -ForegroundColor Green
 ssh "${RASPBERRY_PI_USER}@${RASPBERRY_PI_IP}" 'source $HOME/.cargo/env && cd '"${REMOTE_DIR}"' && cargo build'

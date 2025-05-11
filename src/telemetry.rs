@@ -54,7 +54,7 @@ impl StatusFlags {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ESP32Data {
     pub fuel_level: Option<u16>,
     pub oil_pressure: Option<u16>,

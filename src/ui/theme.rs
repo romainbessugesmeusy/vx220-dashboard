@@ -3,6 +3,7 @@ use crate::telemetry::{DriveMode, ColorScheme};
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
+use std::env;
 
 /// Defines the visual styling for dashboard widgets.
 ///
@@ -52,22 +53,43 @@ impl PartialEq for Theme {
 }
 
 impl Theme {
+    fn get_theme_path() -> String {
+        // First try to get the executable's directory
+        if let Ok(exe_path) = env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                let theme_dir = exe_dir.join("assets/themes");
+                if theme_dir.exists() {
+                    return theme_dir.to_string_lossy().into_owned();
+                }
+            }
+        }
+        
+        // Fallback to current directory
+        "assets/themes".to_string()
+    }
+
     pub fn from_yaml_file<P: AsRef<Path>>(path: P) -> Self {
-        let yaml = fs::read_to_string(path).expect("Failed to read theme YAML file");
-        serde_yaml::from_str(&yaml).expect("Failed to parse theme YAML file")
+        let path_str = path.as_ref().to_string_lossy();
+        let yaml = fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("Failed to read theme YAML file '{}': {}", path_str, e));
+        serde_yaml::from_str(&yaml)
+            .unwrap_or_else(|e| panic!("Failed to parse theme YAML file '{}': {}", path_str, e))
     }
 
     /// Construct a theme based on drive mode and color scheme
     pub fn from_preset(drive_mode: DriveMode, color_scheme: ColorScheme) -> Self {
+        let theme_dir = Self::get_theme_path();
         let file = match (drive_mode, color_scheme) {
-            (DriveMode::Road, ColorScheme::Light) => "assets/themes/light_road.yml",
-            (DriveMode::Road, ColorScheme::Dark) => "assets/themes/dark_road.yml",
-            (DriveMode::Track, ColorScheme::Light) => "assets/themes/light_race.yml",
-            (DriveMode::Track, ColorScheme::Dark) => "assets/themes/dark_race.yml",
+            (DriveMode::Road, ColorScheme::Light) => format!("{}/light_road.yml", theme_dir),
+            (DriveMode::Road, ColorScheme::Dark) => format!("{}/dark_road.yml", theme_dir),
+            (DriveMode::Track, ColorScheme::Light) => format!("{}/light_race.yml", theme_dir),
+            (DriveMode::Track, ColorScheme::Dark) => format!("{}/dark_race.yml", theme_dir),
         };
-        if !std::path::Path::new(file).exists() {
-            panic!("Theme YAML file not found: {}. Please create it in ./assets/themes.", file);
+        
+        if !Path::new(&file).exists() {
+            panic!("Theme YAML file not found: {}. Please ensure the file exists in the correct location.", file);
         }
+        
         Self::from_yaml_file(file)
     }
 

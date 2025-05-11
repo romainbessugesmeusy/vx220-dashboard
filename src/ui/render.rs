@@ -11,6 +11,8 @@ use crate::telemetry::{DriveMode, ColorScheme};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
+use crate::ui::widgets::turbo_pressure_gauge::TurboPressureGauge;
+use crate::ui::widgets::rpm_gauge::RpmGauge;
 
 #[derive(Clone, Copy)]
 enum EasingFunction {
@@ -137,17 +139,57 @@ pub fn render_ui<R: Renderer>(canvas: &mut Canvas<R>, telemetry_state: &SharedTe
     canvas.clear_rect(0, 0, canvas.width() as u32, canvas.height() as u32, Theme::color4(theme.background_color));
 
     // Create a GForceMeter widget
-    let g_force_meter = GForceMeter::new(
-        WidgetGeometry::new(
-            canvas.width() * 0.6, // X position - right side of screen
-            canvas.height() * 0.3, // Y position - upper portion of screen
-            canvas.width() * 0.3, // Width - 30% of screen width
-            canvas.width() * 0.3, // Height - make it square with same size as width
-        ),
+    let mut g_force_meter = GForceMeter::new(
         theme.clone(),
         2.0, // max_g_force_displayed
     );
-    g_force_meter.render(canvas, telemetry_state);
+    // Example: handle theme change (in a real app, this would be tracked across frames)
+    // g_force_meter.on_theme_change(&theme, ThemeTransition { from: theme.clone(), to: theme.clone(), progress: 1.0 });
+    // Example: update per frame (dt should be passed in from main loop)
+    // g_force_meter.update(dt);
+    // Layout: place it on the right side of the screen, 30% width, square
+    let g_force_rect = WidgetGeometry::new(
+        canvas.width() * 0.6, // X position - right side of screen
+        canvas.height() * 0.3, // Y position - upper portion of screen
+        canvas.width() * 0.3, // Width - 30% of screen width
+        canvas.width() * 0.3, // Height - make it square with same size as width
+    );
+    g_force_meter.render(canvas, g_force_rect, telemetry_state);
+
+    // Create a TurboPressureGauge widget
+    let mut turbo_gauge = TurboPressureGauge::new(&theme);
+    // Set value from telemetry if available
+    if let Ok(state) = telemetry_state.try_lock() {
+        if let Some(boost) = state.latest_esp32_data.boost_pressure {
+            // Convert mbar to bar if needed (assuming boost is in mbar)
+            turbo_gauge.set_value(boost as f32 / 1000.0);
+        }
+    }
+    // Layout: place it on the left side of the screen, 30% width, square
+    let turbo_gauge_rect = WidgetGeometry::new(
+        canvas.width() * 0.05, // X position - left margin
+        canvas.height() * 0.3, // Y position - upper portion of screen
+        canvas.width() * 0.3, // Width - 30% of screen width
+        canvas.width() * 0.3, // Height - make it square with same size as width
+    );
+    turbo_gauge.render(canvas, turbo_gauge_rect, telemetry_state);
+
+    // Create an RPM Gauge widget
+    let mut rpm_gauge = RpmGauge::new(&theme);
+    // Set value from telemetry if available
+    if let Ok(state) = telemetry_state.try_lock() {
+        if let Some(rpm) = state.latest_esp32_data.rpm {
+            rpm_gauge.set_value(rpm as f32);
+        }
+    }
+    // Layout: place it in the center of the screen, 30% width, square
+    let rpm_gauge_rect = WidgetGeometry::new(
+        canvas.width() * 0.35, // X position - center
+        canvas.height() * 0.3, // Y position - upper portion of screen
+        canvas.width() * 0.3, // Width - 30% of screen width
+        canvas.width() * 0.3, // Height - make it square with same size as width
+    );
+    rpm_gauge.render(canvas, rpm_gauge_rect, telemetry_state);
 
     // Draw some text
     let mut text_paint = Paint::color(Theme::color3(theme.text_color));
@@ -178,42 +220,6 @@ pub fn render_ui<R: Renderer>(canvas: &mut Canvas<R>, telemetry_state: &SharedTe
 
     let mut text_paint = Paint::color(Theme::color3(theme.text_color));
     text_paint.set_font_size(24.0);
-
-    if let Some(data) = &state.latest_racebox_data {
-        let _ = canvas.fill_text(
-            x_position,
-            y_position,
-            &format!("Speed: {:.1} km/h", data.speed_kph),
-            &text_paint,
-        );
-        y_position += y_spacing;
-    } else {
-        let _ = canvas.fill_text(
-            x_position,
-            y_position,
-            "No RaceBox data available",
-            &text_paint,
-        );
-        y_position += y_spacing;
-    }
-
-    if let Some(rpm) = state.latest_esp32_data.rpm {
-        let _ = canvas.fill_text(
-            x_position,
-            y_position,
-            &format!("RPM: {}", rpm),
-            &text_paint,
-        );
-        y_position += y_spacing;
-    } else {
-        let _ = canvas.fill_text(
-            x_position,
-            y_position,
-            "No RPM data available",
-            &text_paint,
-        );
-        y_position += y_spacing;
-    }
 
     if let Some(boost) = state.latest_esp32_data.boost_pressure {
         let _ = canvas.fill_text(

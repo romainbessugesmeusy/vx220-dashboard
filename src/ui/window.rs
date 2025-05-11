@@ -37,16 +37,17 @@ impl AppWindow {
         info!(target: UI_NAMESPACE, "Creating GL config template...");
         let template = ConfigTemplateBuilder::new()
             .with_alpha_size(8)
-            .with_stencil_size(8)
-            .with_depth_size(24)
-            .with_transparency(true);
+            .with_stencil_size(0)
+            .with_depth_size(0)
+            .with_transparency(false)
+            .with_multisampling(4);
 
         info!(target: UI_NAMESPACE, "Creating display builder...");
         let display_builder = DisplayBuilder::new().with_window_builder(Some(window_builder));
 
         info!(target: UI_NAMESPACE, "Building display...");
         let (window, gl_config) = display_builder
-            .build(event_loop, template, |mut configs| configs.next().unwrap())
+            .build(event_loop, template, |mut configs| configs.next().expect("No suitable GL config for 8x MSAA"))
             .expect("Failed to create display");
 
         let window = window.expect("Failed to create window");
@@ -150,6 +151,12 @@ pub fn create_femtovg_context(app_window: &AppWindow) -> FemtovgContext {
 
     info!(target: UI_NAMESPACE, "Femtovg context created successfully!");
     surface.swap_buffers(&gl_context).expect("Failed to swap buffers");
+
+    unsafe { gl::Enable(gl::MULTISAMPLE); }
+
+    let mut samples: i32 = 0;
+    unsafe { gl::GetIntegerv(gl::SAMPLES, &mut samples); }
+    println!("MSAA samples: {}", samples);
 
     FemtovgContext {
         canvas,
